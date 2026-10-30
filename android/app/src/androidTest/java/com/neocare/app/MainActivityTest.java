@@ -16,8 +16,8 @@ import android.net.Uri;
 import android.security.NetworkSecurityPolicy;
 import android.view.View;
 import android.webkit.CookieManager;
-import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebViewClient;
 
@@ -83,13 +83,13 @@ public final class MainActivityTest {
         assertEquals(0, info.applicationInfo.flags & ApplicationInfo.FLAG_ALLOW_BACKUP);
     }
 
-    @Test public void mainFrameNetworkFailureShowsRetryWithoutReplacingItForAnAssetFailure() {
+    @Test public void mainFrameHttpFailureShowsRetryWithoutReplacingItForAnAssetFailure() {
         scenario.onActivity(activity -> {
             activity.errorPanel.setVisibility(View.GONE);
             WebViewClient client = activity.webView.getWebViewClient();
-            client.onReceivedError(activity.webView, request(false), offlineError());
+            client.onReceivedHttpError(activity.webView, request(false), unavailableResponse());
             assertEquals(View.GONE, activity.errorPanel.getVisibility());
-            client.onReceivedError(activity.webView, request(true), offlineError());
+            client.onReceivedHttpError(activity.webView, request(true), unavailableResponse());
             assertEquals(View.VISIBLE, activity.errorPanel.getVisibility());
             assertNotNull(activity.findViewById(R.id.retry_button));
         });
@@ -182,11 +182,9 @@ public final class MainActivityTest {
         };
     }
 
-    private static WebResourceError offlineError() {
-        return new WebResourceError() {
-            @Override public int getErrorCode() { return WebViewClient.ERROR_HOST_LOOKUP; }
-            @Override public CharSequence getDescription() { return "Synthetic connection failure"; }
-        };
+    private static WebResourceResponse unavailableResponse() {
+        return new WebResourceResponse("text/plain", "UTF-8", 503, "Service Unavailable",
+                Collections.emptyMap(), new java.io.ByteArrayInputStream(new byte[0]));
     }
 
     private String javascript(String expression) throws InterruptedException {
