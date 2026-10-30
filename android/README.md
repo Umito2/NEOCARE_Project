@@ -16,6 +16,13 @@ only Internet permission. It does not bundle credentials or patient data.
 
 ## Build
 
+The repository's **Actions > Build Android APK > Run workflow** builds the app,
+runs unit tests and Android 16 emulator checks, and uploads a signed APK artifact.
+The workflow uses standard public-repository runners and the encrypted
+`NEOCARE_ANDROID_KEYSTORE_BASE64`, `NEOCARE_ANDROID_KEYSTORE_PASSWORD`,
+`NEOCARE_ANDROID_KEY_ALIAS`, and `NEOCARE_ANDROID_KEY_PASSWORD` repository secrets.
+It does not publish a release automatically.
+
 Use JDK 17, Android SDK 36 and the checked-in Gradle 8.13 wrapper:
 
 ```sh
@@ -33,8 +40,14 @@ NEOCARE_KEY_PASSWORD
 ```
 
 Keep the signing keystore and passwords private and backed up. Future APK updates
-must use the same signing key and a higher versionCode. An unsigned local release
-must be signed before Android can install it; the published APK is release-signed.
+must use the same signing key and a higher versionCode. Configure all four signing
+variables before building a release. For a local development build without the
+release key, run `./gradlew testDebugUnitTest assembleDebug`.
+The published APK is release-signed.
+
+The initial private signing backup is kept locally in
+`deployment-artifacts/android-signing/`. Back up that directory securely;
+never put it in a public repository or attach it to a release.
 
 ## Install
 

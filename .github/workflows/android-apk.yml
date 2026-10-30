@@ -91,6 +91,7 @@ jobs:
           name: android-test-reports
           path: |
             android/app/build/reports/
+            android/app/build/test-results/
             android/app/build/outputs/androidTest-results/
           if-no-files-found: ignore
           retention-days: 7

@@ -1,5 +1,9 @@
 # NEOCARE — local AI and demo deployment
 
+## Android application
+
+Download the signed [NEOCARE Android APK](https://github.com/Umito2/NEOCARE_Project/releases/latest). Android 8.0 or newer and internet access are required. The app uses the same online doctor and parent accounts, with English/Arabic, dark mode, PDF saving, and printing. See [android/README.md](android/README.md) for installation, source, and build details.
+
 ## Firebase Hosting website
 
 The interface can run at `https://neocare-system.web.app`, with the Python API remaining at `https://umito.pythonanywhere.com`. See [FIREBASE_HOSTING.md](FIREBASE_HOSTING.md) for the static build and deployment instructions. Firebase Hosting receives only the HTML and two JavaScript assets. Login, database access, and PDF generation use the private backend; local AI and credentials are excluded.

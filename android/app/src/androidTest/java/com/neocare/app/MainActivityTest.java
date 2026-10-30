@@ -12,6 +12,7 @@ import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.security.NetworkSecurityPolicy;
 import android.view.View;
@@ -19,6 +20,7 @@ import android.webkit.CookieManager;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
+import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import androidx.test.core.app.ActivityScenario;
@@ -26,6 +28,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import java.util.Collections;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -137,19 +140,70 @@ public final class MainActivityTest {
     }
 
     @Test public void backReturnsThroughWebHistoryWithoutClosingTheActivity() throws Exception {
-        syntheticPage(HostPolicy.HOME);
-        javascript("history.pushState({}, '', '/__neocare_synthetic_second'); true");
+        String first = HostPolicy.ORIGIN + "/__neocare_android_test_first";
+        String second = HostPolicy.ORIGIN + "/__neocare_android_test_second";
+        AtomicReference<String> finished = new AtomicReference<>("");
+        scenario.onActivity(activity -> {
+            activity.webView.stopLoading();
+            WebViewClient productionClient = activity.webView.getWebViewClient();
+            activity.webView.setWebViewClient(new WebViewClient() {
+                @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                    String url = request.getUrl().toString();
+                    if (!first.equals(url) && !second.equals(url)) return unavailableResponse();
+                    byte[] html = ("<!doctype html><meta charset='utf-8'><title>NEOCARE synthetic history</title>"
+                            + "<p id='fixture'>" + (first.equals(url) ? "first" : "second") + "</p>")
+                            .getBytes(StandardCharsets.UTF_8);
+                    return new WebResourceResponse("text/html", "UTF-8", 200, "OK",
+                            Collections.singletonMap("Cache-Control", "no-store"),
+                            new java.io.ByteArrayInputStream(html));
+                }
+
+                @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                    return productionClient.shouldOverrideUrlLoading(view, request);
+                }
+
+                @Override public void onPageStarted(WebView view, String url, Bitmap icon) {
+                    productionClient.onPageStarted(view, url, icon);
+                }
+
+                @Override public void onPageFinished(WebView view, String url) {
+                    productionClient.onPageFinished(view, url);
+                    finished.set(url);
+                }
+            });
+            activity.webView.loadUrl(first);
+        });
+        awaitDocument(finished, first, "first");
+        scenario.onActivity(activity -> activity.webView.loadUrl(second));
+        awaitDocument(finished, second, "second");
+
+        // Document navigations create real native history entries. A pushState
+        // in loadDataWithBaseURL can be ignored by Chromium's history policy.
+        AtomicReference<Boolean> canGoBack = new AtomicReference<>(false);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (!canGoBack.get() && System.nanoTime() < deadline) {
+            scenario.onActivity(activity -> canGoBack.set(activity.webView.canGoBack()));
+            if (!canGoBack.get()) Thread.sleep(50);
+        }
+        assertTrue("The two document navigations must create native history", canGoBack.get());
+        finished.set("");
         scenario.onActivity(activity -> {
             assertTrue(activity.webView.canGoBack());
             activity.navigateBack();
             assertFalse(activity.isFinishing());
         });
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        awaitDocument(finished, first, "first");
+        scenario.onActivity(activity -> assertFalse(activity.isFinishing()));
+    }
+
+    private void awaitDocument(AtomicReference<String> finished, String url, String text) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         while (System.nanoTime() < deadline) {
-            if ("\"/\"".equals(javascript("location.pathname"))) return;
+            if (url.equals(finished.get()) && "true".equals(javascript(
+                    "document.getElementById('fixture')?.textContent === '" + text + "'"))) return;
             Thread.sleep(50);
         }
-        throw new AssertionError("Back did not restore the previous page");
+        throw new AssertionError("The expected synthetic history document did not finish loading");
     }
 
     private Instrumentation.ActivityMonitor pdfPickerMonitor() throws Exception {
