@@ -2,7 +2,7 @@
 
 Usage: python run_tests.py
 Failures are intentionally left visible; application source is not repaired by
-the test runner. See TEST_REPORT.md for reproduced defects and coverage limits.
+the test runner. See docs/TEST_REPORT.md for reproduced defects and coverage limits.
 """
 
 import json

@@ -33,3 +33,14 @@ test-results/
 .local-ai/
 .backups/
 /Microsoft/Windows/PowerShell/ModuleAnalysisCache
+
+# Retained locally; not part of the current published setup.
+/Dockerfile
+/.dockerignore
+/.railwayignore
+/render.yaml
+/RAILWAY_DEPLOY.md
+/FIREBASE_HOSTING.md
+/PYTHONANYWHERE_DEPLOY.md
+/TEST_REPORT.md
+/tests/frontend/capture-*.mjs
