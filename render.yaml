@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: neocare-demo
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.4
+      - key: FIREBASE_DATABASE_URL
+        value: https://neocare-system-default-rtdb.firebaseio.com/
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/serviceAccountKey.json
+      - key: ESP32_API_KEY
+        generateValue: true
+      - key: DOCTOR_USERNAME
+        sync: false
+      - key: DOCTOR_PASSWORD
+        sync: false
+      # A remote Render service cannot reach Ollama running on your PC.
+      # Reports use rule-based fallback unless Ollama is available on this host.
+      - key: OLLAMA_BASE_URL
+        value: http://127.0.0.1:11434
+      - key: OLLAMA_MODEL
+        value: qwen3.5:4b
+      - key: NEOCARE_AUTH_DB
+        value: /tmp/neocare_auth.sqlite3

@@ -1,0 +1,22 @@
+# Strict upload allowlist: no credentials, local database, backups or local AI.
+*
+!Dockerfile
+!.dockerignore
+!.railwayignore
+!RAILWAY_DEPLOY.md
+!requirements.txt
+!api.py
+!assessment.py
+!auth_store.py
+!main.py
+!cloud_start.py
+!index.html
+!neocare-i18n.js
+!assets/
+assets/*
+!assets/fonts/
+assets/fonts/*
+!assets/fonts/Amiri-Regular.ttf
+!assets/fonts/Amiri-Bold.ttf
+!assets/fonts/Amiri-Italic.ttf
+!assets/fonts/OFL.txt

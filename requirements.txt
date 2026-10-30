@@ -1,0 +1,6 @@
+firebase-admin
+fpdf2>=2.8.5,<3
+uharfbuzz>=0.46,<1
+fastapi
+uvicorn
+httpx
