@@ -1,5 +1,23 @@
 # NEOCARE test report
 
+## Android APK — 30 October 2026
+
+The Android 8.0+ app compiled and passed Android lint with no errors. All
+**14 Android checks passed without skips**: seven JVM unit tests and seven
+instrumentation tests on an Android 16 emulator. The release APK was signed and
+verified with Android's `apksigner`; a SHA-256 checksum accompanies the release.
+
+Coverage includes HTTPS host restrictions, URL spoofing, PDF payload and filename
+validation, WebView configuration, minimal permissions, disabled backup, error
+handling, native Back navigation, origin/frame restrictions, and PDF export via
+the system document picker even when the page immediately revokes its blob URL.
+Instrumentation uses intercepted synthetic pages and reports, without submitting
+credentials or patient records. Physical-phone installation was not performed.
+
+Build evidence: [successful Android workflow](https://github.com/Umito2/NEOCARE_Project/actions/runs/41098533643).
+The local verification summary is
+`deployment-artifacts/android-test-verification.json`.
+
 ## Firebase Hosting deployment — 30 October 2026
 
 The public interface is deployed at `https://neocare-system.web.app`, using the
