@@ -12,6 +12,11 @@ References: [pricing](https://www.pythonanywhere.com/pricing/),
 
 ## Package and storage
 
+For a Firebase-hosted interface using this same backend, follow
+[FIREBASE_HOSTING.md](FIREBASE_HOSTING.md). Keep `hosted_ui.py` and the default
+`hosting-config.js` in the backend package, and configure the two allowed browser
+origins in the provider WSGI file before application initialization.
+
 Upload the clean `deployment-artifacts/NEOCARE_PythonAnywhere.zip` package.
 It contains application source, report fonts, and the cloud launcher files.
 It excludes Ollama, downloaded AI models, laptop databases, backups, credentials,

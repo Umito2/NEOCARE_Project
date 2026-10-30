@@ -765,6 +765,7 @@
     </main>
   </div>
 
+  <script src="/assets/hosting-config.js"></script>
   <script src="/assets/neocare-i18n.js"></script>
   <script>
     const form = document.getElementById("profile-form");
@@ -1318,10 +1319,28 @@
       parentChildId = null;
     }
 
-    async function apiRequest(path, options = {}) {
-      const response = await fetch(path, {
+    // Only a deployment-owned file can select the separately hosted API.
+    // Cookie values stay HttpOnly; no authentication tokens enter browser storage.
+    const trustedHostedApiOrigin = "https://umito.pythonanywhere.com";
+    const configuredApiOrigin = window.NEOCARE_HOSTING_CONFIG?.apiOrigin;
+    const hostedApiOrigin = configuredApiOrigin === trustedHostedApiOrigin ? configuredApiOrigin : "";
+    const invalidApiOrigin = configuredApiOrigin != null && configuredApiOrigin !== "" && !hostedApiOrigin;
+
+    async function apiFetch(path, options = {}) {
+      if (invalidApiOrigin) throw new Error("The website connection is not configured correctly.");
+      if (typeof path !== "string" || (path !== "/health" && !path.startsWith("/api/v1/")) || /[\\#]/.test(path)) {
+        throw new Error("The request could not be completed.");
+      }
+      return fetch(hostedApiOrigin ? `${hostedApiOrigin}${path}` : path, {
         ...options,
-        credentials: "same-origin",
+        credentials: hostedApiOrigin ? "include" : "same-origin",
+        redirect: "error"
+      });
+    }
+
+    async function apiRequest(path, options = {}) {
+      const response = await apiFetch(path, {
+        ...options,
         headers: { "Content-Type": "application/json", ...options.headers }
       });
       const data = await response.json().catch(() => ({}));
@@ -1771,9 +1790,8 @@
           if (!reportIsCurrent() || downloadButton.disabled) return;
           setBusy(downloadButton, true);
           try {
-            const pdfResponse = await fetch(
-              `/api/v1/children/${encodeURIComponent(requestedChildId)}/report/latest/pdf`,
-              { credentials: "same-origin" }
+            const pdfResponse = await apiFetch(
+              `/api/v1/children/${encodeURIComponent(requestedChildId)}/report/latest/pdf`
             );
             if (!reportIsCurrent()) return;
             if (!pdfResponse.ok) {
@@ -2051,9 +2069,8 @@
           downloadButton.addEventListener("click", async () => {
             setBusy(downloadButton, true);
             try {
-              const response = await fetch(
-                `/api/v1/alerts/${encodeURIComponent(alert.alert_id)}/pdf`,
-                { credentials: "same-origin" }
+              const response = await apiFetch(
+                `/api/v1/alerts/${encodeURIComponent(alert.alert_id)}/pdf`
               );
               if (!response.ok) {
                 const data = await response.json().catch(() => ({}));
@@ -2314,7 +2331,7 @@
       element.addEventListener("animationend", () => element.classList.remove("is-updated"));
     });
 
-    fetch("/health").then((response) => {
+    apiFetch("/health").then((response) => {
       if (!response.ok) throw new Error();
       document.getElementById("health-dot").classList.add("online");
       document.getElementById("health-label").textContent = "Server connected";

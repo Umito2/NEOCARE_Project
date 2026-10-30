@@ -32,6 +32,10 @@ from pydantic import (
 import auth_store
 import assessment
 import main
+from hosted_ui import (
+    HostedUIAccessMiddleware, allowed_web_origins, clear_session_cookie,
+    session_cookie_name, set_session_cookie,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 logger = logging.getLogger(__name__)
@@ -154,6 +158,7 @@ class AlertUpdate(BaseModel):
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    allowed_web_origins()
     auth_store.initialize()
     main.init_firebase()
     stop = threading.Event()
@@ -169,7 +174,12 @@ async def lifespan(_app: FastAPI):
             worker.join(timeout=1)
 
 
-app = FastAPI(
+class HostedFastAPI(FastAPI):
+    def build_middleware_stack(self):
+        return HostedUIAccessMiddleware(super().build_middleware_stack())
+
+
+app = HostedFastAPI(
     title="NEOCARE ESP32 Sensor API",
     description="Receives ESP32 sensor readings and stores the latest reading in Firebase.",
     lifespan=lifespan,
@@ -192,7 +202,7 @@ def secure_equal(first, second):
 
 
 def current_user(request: Request):
-    session = auth_store.get_session(request.cookies.get("neocare_session"))
+    session = auth_store.get_session(request.cookies.get(session_cookie_name(request)))
     if session is None:
         raise HTTPException(status_code=401, detail="Please sign in.")
     return session
@@ -610,6 +620,11 @@ def translation_script():
     return FileResponse(BASE_DIR / "neocare-i18n.js", media_type="application/javascript", headers={"Cache-Control": "no-store"})
 
 
+@app.get("/assets/hosting-config.js")
+def hosting_configuration_script():
+    return FileResponse(BASE_DIR / "hosting-config.js", media_type="application/javascript", headers={"Cache-Control": "no-store"})
+
+
 @app.post("/api/v1/auth/signup")
 def parent_signup(signup: ParentSignup, request: Request, response: Response):
     if len(signup.password) < 12:
@@ -650,15 +665,7 @@ def parent_signup(signup: ParentSignup, request: Request, response: Response):
             raise
 
     token = auth_store.create_session("parent", parent_id, signup.parent_name)
-    response.set_cookie(
-        "neocare_session",
-        token,
-        httponly=True,
-        secure=request.url.scheme == "https",
-        samesite="lax",
-        max_age=auth_store.SESSION_SECONDS,
-        path="/",
-    )
+    set_session_cookie(response, request, token, auth_store.SESSION_SECONDS)
     return {
         "role": "parent",
         "display_name": signup.parent_name,
@@ -696,15 +703,7 @@ def login(payload: LoginRequest, request: Request, response: Response):
     token = auth_store.create_session(user["role"], user["user_id"], user["display_name"])
     if user["role"] == "doctor":
         auth_store.record_audit("doctor", user["user_id"], "doctor.login", user["user_id"])
-    response.set_cookie(
-        "neocare_session",
-        token,
-        httponly=True,
-        secure=request.url.scheme == "https",
-        samesite="lax",
-        max_age=auth_store.SESSION_SECONDS,
-        path="/",
-    )
+    set_session_cookie(response, request, token, auth_store.SESSION_SECONDS)
     return {"role": user["role"], "display_name": user["display_name"]}
 
 
@@ -716,8 +715,8 @@ def who_am_i(request: Request):
 
 @app.post("/api/v1/auth/logout")
 def logout(request: Request, response: Response):
-    auth_store.delete_session(request.cookies.get("neocare_session"))
-    response.delete_cookie("neocare_session", path="/", httponly=True, samesite="lax")
+    auth_store.delete_session(request.cookies.get(session_cookie_name(request)))
+    clear_session_cookie(response, request)
     return {"status": "signed_out"}
 
 

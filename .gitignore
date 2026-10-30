@@ -5,6 +5,8 @@
 .pythonanywhere_api_token
 pythonanywhere-settings.json
 deployment-artifacts/
+.firebase/
+firebase-debug.log*
 *.sqlite3
 *.sqlite3-*
 serviceAccountKey*.json

@@ -1,0 +1,20 @@
+{
+  "hosting": {
+    "site": "neocare-system",
+    "public": "deployment-artifacts/firebase-public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "predeploy": ["python build_firebase.py"],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {"key": "Cache-Control", "value": "no-store"},
+          {"key": "X-Content-Type-Options", "value": "nosniff"},
+          {"key": "Referrer-Policy", "value": "strict-origin-when-cross-origin"},
+          {"key": "X-Frame-Options", "value": "DENY"},
+          {"key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()"}
+        ]
+      }
+    ]
+  }
+}

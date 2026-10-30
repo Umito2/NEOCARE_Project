@@ -6,6 +6,8 @@
 !RAILWAY_DEPLOY.md
 !requirements.txt
 !api.py
+!hosted_ui.py
+!hosting-config.js
 !assessment.py
 !auth_store.py
 !main.py

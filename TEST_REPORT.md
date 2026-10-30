@@ -1,5 +1,37 @@
 # NEOCARE test report
 
+## Firebase Hosting deployment — 30 October 2026
+
+The public interface is deployed at `https://neocare-system.web.app`, using the
+existing private PythonAnywhere backend. Both Firebase addresses and all three
+public files match the reviewed build. Requests for private credentials and
+backend source return 404 on Firebase Hosting.
+
+Validation completed with no failures:
+
+| Check | Passed | Skipped |
+| --- | ---: | ---: |
+| Offline Python suite, including hosted-origin and session isolation | 229 | 2 |
+| Static build boundaries, allowlist, hard links and Windows junction | 4 | 3 |
+| Headless Chrome interface regression, including 12 hosting cases | 114 | 0 |
+| Published-site Chrome authentication and session checks | 10 | 1 |
+
+The Python skips require Unix permission/fork behavior or Windows symlink
+privilege. The live PDF check was skipped because no existing child had a
+reportable reading. Synthetic PDF generation and both frontend download paths
+passed their automated checks; no patient readings were created for this deploy.
+
+The live browser used ordinary third-party-cookie restrictions and verified
+the partitioned, Secure, HttpOnly session, doctor sign-in, authenticated Firebase
+read access, page refresh, logout, and cookie removal. Allowed-origin preflight
+returned 204; an unrelated origin returned 403. Existing local and same-origin
+authentication remain covered by the regression suite. These are software and
+deployment checks, not clinical validation.
+
+Evidence: `test-results/firebase-python-suite.log`,
+`test-results/frontend/all-hosting-results.tap`, and
+`deployment-artifacts/firebase-browser-live.json` (private local artifacts).
+
 ## Dark mode — 28 October 2026
 
 **All 102 browser checks passed:** the existing 84 interface/workflow regressions and 18 theme checks. Dark mode covers sign-in, profiles, dashboards, controls, alerts, status badges, history, and reports. The theme is selected before body rendering, follows the device preference until explicitly changed, and remembers a saved light/dark choice. The switch supports keyboard interaction and translated English/Arabic action labels. Blocked browser storage falls back gracefully.

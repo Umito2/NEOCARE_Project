@@ -10,7 +10,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN python -m pip install --no-cache-dir -r requirements.txt
 
-COPY api.py assessment.py auth_store.py main.py cloud_start.py index.html neocare-i18n.js ./
+COPY api.py hosted_ui.py assessment.py auth_store.py main.py cloud_start.py index.html hosting-config.js neocare-i18n.js ./
 COPY assets/fonts/Amiri-Regular.ttf assets/fonts/Amiri-Bold.ttf assets/fonts/Amiri-Italic.ttf assets/fonts/OFL.txt ./assets/fonts/
 
 EXPOSE 8000

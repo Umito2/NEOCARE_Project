@@ -8,6 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const sourceHtml = await readFile(resolve(projectRoot, 'index.html'), 'utf8');
 const translationScript = await readFile(resolve(projectRoot, 'neocare-i18n.js'), 'utf8');
+const hostingConfigScript = await readFile(resolve(projectRoot, 'hosting-config.js'), 'utf8');
 // Inline the actual local translation asset because browser network access is blocked.
 const html = sourceHtml.replace('<script src="/assets/neocare-i18n.js"></script>', () => `<script>${translationScript}</script>`);
 
@@ -124,10 +125,13 @@ function installFixtures(options) {
   window.print = () => {};
   window.fetch = async (url, options = {}) => {
     const state = window.__fixture;
-    const path = String(url);
+    const requestUrl = String(url);
+    const parsedUrl = new URL(requestUrl, 'https://synthetic-neocare.test');
+    const path = parsedUrl.pathname + parsedUrl.search;
     const method = options.method || 'GET';
     const body = options.body ? JSON.parse(options.body) : undefined;
-    state.calls.push({ path, method, body });
+    state.calls.push({ path, method, body, url: requestUrl, credentials: options.credentials,
+      redirect: options.redirect, headers: Object.fromEntries(new Headers(options.headers || {})) });
     if (state.deferredRequests[path]) await state.deferredRequests[path];
     const reply = (data, status = 200) => new Response(JSON.stringify(data), {
       status, headers: { 'Content-Type': 'application/json' },
@@ -162,6 +166,12 @@ function installFixtures(options) {
     if (path === '/api/v1/doctor/audit') {
       if (state.user?.role !== 'doctor') return reply({ detail: 'Doctor access required' }, 403);
       return reply({ events: state.auditEvents });
+    }
+    const alertPdfRoute = path.match(/^\/api\/v1\/alerts\/([^/]+)\/pdf$/);
+    if (alertPdfRoute && method === 'GET') {
+      const alert = state.alerts.find((entry) => String(entry.alert_id) === decodeURIComponent(alertPdfRoute[1]));
+      if (!alert?.pdf_available) return reply({ detail: 'Alert PDF not found' }, 404);
+      return new Response('%PDF-synthetic-alert', { headers: { 'Content-Type': 'application/pdf' } });
     }
     const alertRoute = path.match(/^\/api\/v1\/alerts\/([^/]+)$/);
     if (alertRoute && method === 'PATCH') {
@@ -392,9 +402,13 @@ export async function startBrowser() {
       if (options.colorScheme !== undefined) await page.colorScheme(options.colorScheme);
       await page.evaluate(`(${installFixtures.toString()})(${JSON.stringify(options)})`);
       const { frameTree } = await pageCDP.send('Page.getFrameTree');
+      const configScript = Object.hasOwn(options, 'hostingConfig')
+        ? options.hostingConfig === null ? '' : `window.NEOCARE_HOSTING_CONFIG=Object.freeze(${JSON.stringify(options.hostingConfig).replaceAll('<', '\\u003c')});`
+        : hostingConfigScript;
+      const configuredHtml = html.replace('<script src="/assets/hosting-config.js"></script>', () => `<script>${configScript}</script>`);
       const pageHtml = options.observeThemeInitialization
-        ? html.replace(/(<body\b[^>]*>)/i, '$1<script>window.__fixture.themeAtBodyStart=document.documentElement.getAttribute("data-theme");</script>')
-        : html;
+        ? configuredHtml.replace(/(<body\b[^>]*>)/i, '$1<script>window.__fixture.themeAtBodyStart=document.documentElement.getAttribute("data-theme");</script>')
+        : configuredHtml;
       await pageCDP.send('Page.setDocumentContent', { frameId: frameTree.frame.id, html: pageHtml });
       await page.settle();
       return page;

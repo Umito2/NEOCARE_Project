@@ -1,5 +1,9 @@
 # NEOCARE — local AI and demo deployment
 
+## Firebase Hosting website
+
+The interface can run at `https://neocare-system.web.app`, with the Python API remaining at `https://umito.pythonanywhere.com`. See [FIREBASE_HOSTING.md](FIREBASE_HOSTING.md) for the static build and deployment instructions. Firebase Hosting receives only the HTML and two JavaScript assets. Login, database access, and PDF generation use the private backend; local AI and credentials are excluded.
+
 ## PythonAnywhere deployment without local AI
 
 See [PYTHONANYWHERE_DEPLOY.md](PYTHONANYWHERE_DEPLOY.md) for the free-host deployment setup. The clean ZIP excludes local AI, credentials, and laptop data. The standard WSGI host runs FastAPI through a small adapter, with persistent private storage and rule-based recommendations. The provider's Force HTTPS setting redirects insecure requests before they reach the application.
