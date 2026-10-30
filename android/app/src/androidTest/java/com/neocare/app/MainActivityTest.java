@@ -253,18 +253,62 @@ public final class MainActivityTest {
     }
 
     private void syntheticPage(String origin) throws Exception {
+        boolean trusted = HostPolicy.isTrusted(origin);
+        String fixtureUrl = trusted ? HostPolicy.ORIGIN + "/__neocare_android_fixture" : origin;
+        String html = "<!doctype html><meta charset='utf-8'><title>NEOCARE synthetic test</title>"
+                + "<p id='fixture'>Synthetic content only</p>";
+        AtomicReference<String> finished = new AtomicReference<>("");
         scenario.onActivity(activity -> {
             activity.webView.stopLoading();
-            activity.webView.loadDataWithBaseURL(origin,
-                    "<!doctype html><meta charset='utf-8'><title>NEOCARE synthetic test</title>"
-                            + "<p id='fixture'>Synthetic content only</p>",
-                    "text/html", "UTF-8", origin);
+            if (trusted) {
+                WebViewClient productionClient = activity.webView.getWebViewClient();
+                activity.webView.setWebViewClient(new WebViewClient() {
+                    @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                        if (!fixtureUrl.equals(request.getUrl().toString())) return unavailableResponse();
+                        return new WebResourceResponse("text/html", "UTF-8", 200, "OK",
+                                Collections.singletonMap("Cache-Control", "no-store"),
+                                new java.io.ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
+                    }
+
+                    @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                        return productionClient.shouldOverrideUrlLoading(view, request);
+                    }
+
+                    @Override public void onPageStarted(WebView view, String url, Bitmap icon) {
+                        productionClient.onPageStarted(view, url, icon);
+                    }
+
+                    @Override public void onPageFinished(WebView view, String url) {
+                        productionClient.onPageFinished(view, url);
+                        finished.set(url);
+                    }
+                });
+                activity.webView.loadUrl(fixtureUrl);
+            } else {
+                activity.webView.loadDataWithBaseURL(origin, html, "text/html", "UTF-8", origin);
+            }
         });
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         while (System.nanoTime() < deadline) {
-            if ("true".equals(javascript("document.getElementById('fixture') !== null"))) return;
+            String readyExpression = "document.getElementById('fixture') !== null";
+            if (trusted) {
+                // DOM existence precedes document completion and the fallback
+                // native report hook. Wait for both sides of the real bridge.
+                if (!fixtureUrl.equals(finished.get())) {
+                    Thread.sleep(50);
+                    continue;
+                }
+                readyExpression += " && window.__neocareNativeReports === true"
+                        + " && typeof window.NEOCAREAndroid === 'object'";
+            }
+            if ("true".equals(javascript(readyExpression))) {
+                AtomicReference<Boolean> nativeReady = new AtomicReference<>(!trusted);
+                if (trusted) scenario.onActivity(activity -> nativeReady.set(
+                        fixtureUrl.equals(activity.webView.getUrl()) && !activity.isFinishing()));
+                if (nativeReady.get()) return;
+            }
             Thread.sleep(50);
         }
-        throw new AssertionError("Synthetic page did not finish loading");
+        throw new AssertionError("Synthetic page and required native bridge did not finish loading");
     }
 }
