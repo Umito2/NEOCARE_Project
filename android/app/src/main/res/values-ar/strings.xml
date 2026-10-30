@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">NEOCARE</string>
+    <string name="connection_title">تعذر فتح NEOCARE</string>
+    <string name="connection_message">تحقق من اتصال الإنترنت ثم حاول مرة أخرى.</string>
+    <string name="secure_connection_message">تعذر إنشاء اتصال آمن. حاول مرة أخرى لاحقًا.</string>
+    <string name="retry">حاول مرة أخرى</string>
+    <string name="open_website">فتح الموقع</string>
+    <string name="update_webview">حدّث Android System WebView أو Chrome لحفظ التقارير وطباعتها هنا. يمكنك أيضًا استخدام الموقع في المتصفح.</string>
+    <string name="download_failed">تعذر حفظ ملف PDF. حاول مرة أخرى.</string>
+    <string name="download_saved">تم حفظ ملف PDF</string>
+    <string name="download_busy">أكمل حفظ التقرير الحالي أولًا.</string>
+    <string name="no_document_app">لا يوجد تطبيق لحفظ ملفات PDF. افتح الموقع في المتصفح.</string>
+    <string name="no_browser">لا يوجد متصفح لفتح هذا الرابط.</string>
+    <string name="print_failed">الطباعة غير متاحة. يمكنك تنزيل ملف PDF بدلًا منها.</string>
+    <string name="save_report">حفظ تقرير NEOCARE</string>
+</resources>

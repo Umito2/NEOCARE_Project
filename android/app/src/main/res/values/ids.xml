@@ -1,0 +1,6 @@
+<resources>
+    <item name="webview" type="id" />
+    <item name="error_panel" type="id" />
+    <item name="retry_button" type="id" />
+    <item name="progress_bar" type="id" />
+</resources>

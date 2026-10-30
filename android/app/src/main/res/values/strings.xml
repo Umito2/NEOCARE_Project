@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">NEOCARE</string>
+    <string name="connection_title">Unable to open NEOCARE</string>
+    <string name="connection_message">Check your internet connection and try again.</string>
+    <string name="secure_connection_message">A secure connection could not be established. Try again later.</string>
+    <string name="retry">Try again</string>
+    <string name="open_website">Open website</string>
+    <string name="update_webview">Update Android System WebView or Chrome to save and print reports here. You can also use the website in your browser.</string>
+    <string name="download_failed">The PDF could not be saved. Please try again.</string>
+    <string name="download_saved">PDF saved</string>
+    <string name="download_busy">Finish saving the current report first.</string>
+    <string name="no_document_app">No app is available to save PDF files. Open the website in a browser.</string>
+    <string name="no_browser">No browser is available to open this link.</string>
+    <string name="print_failed">Printing is unavailable. You can download the PDF instead.</string>
+    <string name="save_report">Save NEOCARE report</string>
+</resources>

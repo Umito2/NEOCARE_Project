@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.neocare.app'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.neocare.app'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+
+    signingConfigs {
+        release {
+            storeType 'PKCS12'
+            def signingPath = System.getenv('NEOCARE_KEYSTORE_PATH')
+            if (signingPath) {
+                storeFile file(signingPath)
+                storePassword System.getenv('NEOCARE_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('NEOCARE_KEY_ALIAS')
+                keyPassword System.getenv('NEOCARE_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            debuggable false
+        }
+    }
+    buildFeatures { buildConfig true }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    lint { abortOnError true }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.15.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+}
