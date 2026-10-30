@@ -11,6 +11,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  python:
+    name: Linux backend regression tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test Python backend and Linux permissions
+        run: |
+          python3 -m venv .test-venv
+          .test-venv/bin/python -m pip install -r requirements-dev.txt
+          .test-venv/bin/python -B run_tests.py
+      - name: Upload Python results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: python-linux-test-results
+          path: test-results/python-results.json
+          if-no-files-found: ignore
+          retention-days: 7
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
@@ -73,14 +95,14 @@ jobs:
         run: |
           ./gradlew --no-daemon assembleRelease
           mkdir -p release-output
-          cp app/build/outputs/apk/release/app-release.apk release-output/NEOCARE-1.0.0.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs release-output/NEOCARE-1.0.0.apk > release-output/signature-verification.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging release-output/NEOCARE-1.0.0.apk > release-output/apk-info.txt
-          (cd release-output && sha256sum NEOCARE-1.0.0.apk > SHA256SUMS.txt)
+          cp app/build/outputs/apk/release/app-release.apk release-output/NEOCARE-1.0.1.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs release-output/NEOCARE-1.0.1.apk > release-output/signature-verification.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging release-output/NEOCARE-1.0.1.apk > release-output/apk-info.txt
+          (cd release-output && sha256sum NEOCARE-1.0.1.apk > SHA256SUMS.txt)
       - name: Upload signed APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: neocare-android-1.0.0
+          name: neocare-android-1.0.1
           path: android/release-output/
           if-no-files-found: error
           retention-days: 7

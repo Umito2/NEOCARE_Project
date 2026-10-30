@@ -298,7 +298,8 @@ def get_alert_severity(child_id):
 
 
 def add_alert(
-    child_id, parent_id, child_name, severity, subject, message, email_status, pdf_data=None
+    child_id, parent_id, child_name, severity, subject, message, email_status, pdf_data=None,
+    *, recipient=None,
 ):
     with connect() as db:
         cursor = db.execute(
@@ -321,7 +322,16 @@ def add_alert(
                 pdf_data,
             ),
         )
-        return cursor.lastrowid
+        alert_id = cursor.lastrowid
+        if recipient is not None:
+            now = int(time.time())
+            # Sharing a report must commit its saved PDF and delivery job
+            # together; a failed outbox insert rolls the whole notice back.
+            db.execute(
+                "INSERT INTO email_outbox(alert_id,recipient,subject,message,pdf_data,next_attempt_at,updated_at) VALUES (?,?,?,?,?,?,?)",
+                (alert_id, recipient, subject, message, pdf_data, now, now),
+            )
+        return alert_id
 
 
 def update_alert_email_status(alert_id, email_status):
@@ -678,8 +688,11 @@ def complete_alert_email(alert_id, status, error=None):
         raise ValueError("Invalid email delivery result")
     now = int(time.time())
     with connect() as db:
-        row = db.execute("SELECT attempts FROM email_outbox WHERE alert_id=?", (alert_id,)).fetchone()
-        if row is None:
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT attempts,status FROM email_outbox WHERE alert_id=?", (alert_id,)).fetchone()
+        # A worker may finish after its lease expired and another worker sent
+        # the notice. Once delivery succeeded, a stale failure cannot requeue it.
+        if row is None or row["status"] == "sent":
             return False
         attempts = row["attempts"] + (status != "not_configured")
         state = "sent" if status == "sent" else "failed" if attempts >= MAX_EMAIL_ATTEMPTS else "retry"

@@ -54,6 +54,15 @@ class SensorReading(BaseModel):
     resp_rate: float | None = Field(default=None, gt=0, le=100)
     activity: Literal["Sleeping", "Resting", "Active"] | None = None
 
+    @field_validator("heart_rate_bpm", "spo2_percent", "temperature_c", "resp_rate", mode="before")
+    @classmethod
+    def reject_boolean_measurements(cls, value):
+        # JSON true/false are not measurements. Pydantic otherwise coerces them
+        # to1/0 before the numeric bounds can distinguish them from real values.
+        if isinstance(value, bool):
+            raise ValueError("Measurements must be numbers, not true or false.")
+        return value
+
 
 class ChildProfile(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -961,11 +970,10 @@ def send_latest_reading_report(child_id: str, request: Request):
         severity=report["risk_status"],
         subject=subject,
         message=message,
-        email_status="not_configured",
+        email_status="queued",
         pdf_data=pdf_bytes,
+        recipient=parent_email,
     )
-
-    auth_store.enqueue_alert_email(alert_id, parent_email, subject, message, pdf_bytes)
     email_status = deliver_pending_alert_emails(limit=1).get(alert_id, "queued")
     auth_store.record_audit("doctor", user["user_id"], "report.shared", str(alert_id), {"result": email_status})
 

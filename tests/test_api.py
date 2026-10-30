@@ -363,7 +363,7 @@ class AlertAndReportTests(ApiTestCase):
         self.assertEqual(response.headers["content-type"], "application/pdf")
         self.assertTrue(response.content.startswith(b"%PDF-"))
         self.assertIn(b"%%EOF", response.content[-100:])
-        self.assertEqual(response.headers["cache-control"], "no-store")
+        self.assertEqual(response.headers["cache-control"], "private, no-store")
 
     def test_clinic_shares_saved_pdf_only_with_owner(self):
         child = self.signup()

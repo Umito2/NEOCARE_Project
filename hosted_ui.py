@@ -91,6 +91,15 @@ class HostedUIAccessMiddleware:
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
+
+        async def send_private_response(message):
+            if message["type"] == "http.response.start" and scope.get("path", "").startswith("/api/"):
+                # Cover early guard failures as well as routed responses and
+                # outer server errors. Neither browsers nor shared caches may
+                # retain API data, including patient JSON and downloadable PDFs.
+                MutableHeaders(scope=message)["Cache-Control"] = "private, no-store"
+            await send(message)
+
         headers = Headers(scope=scope)
         origin_headers = headers.getlist("origin")
         origin = origin_headers[0] if len(origin_headers) == 1 else None
@@ -98,7 +107,7 @@ class HostedUIAccessMiddleware:
         try:
             allowed = allowed_web_origins()
         except ValueError:
-            return await JSONResponse({"detail": "Hosted interface origins are not configured correctly."}, status_code=503)(scope, receive, send)
+            return await JSONResponse({"detail": "Hosted interface origins are not configured correctly."}, status_code=503)(scope, receive, send_private_response)
         url = URL(scope=scope)
         same_origin = f"{url.scheme}://{url.netloc}"
         cloud = bool(origin and origin != same_origin and origin in allowed)
@@ -112,7 +121,7 @@ class HostedUIAccessMiddleware:
                 if cloud:
                     response_headers["Access-Control-Allow-Origin"] = origin
                     response_headers["Access-Control-Allow-Credentials"] = "true"
-            await send(message)
+            await send_private_response(message)
 
         if origin_headers and (len(origin_headers) != 1 or (origin != same_origin and not cloud)):
             return await JSONResponse({"detail": "This browser origin is not allowed."}, status_code=403)(scope, receive, send_with_cors)

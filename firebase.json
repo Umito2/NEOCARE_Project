@@ -1,4 +1,7 @@
 {
+  "database": {
+    "rules": "database.rules.json"
+  },
   "hosting": {
     "site": "neocare-system",
     "public": "deployment-artifacts/firebase-public",

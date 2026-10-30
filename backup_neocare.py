@@ -8,6 +8,7 @@ Backups contain private application data and must stay outside version control.
 import argparse
 import hashlib
 import json
+import os
 import secrets
 import sqlite3
 from contextlib import closing
@@ -53,19 +54,30 @@ def _copy_sqlite(source, destination, allow_missing=False):
     _check_sqlite(destination)
 
 
+def _write_private_json(path, value, **options):
+    # Restrict permissions at creation, before any private content is written.
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+        json.dump(value, output, **options)
+
+
 def create_backup(db_path, firebase_ref, output_dir, *, firebase_url="", kind="manual", allow_missing_sqlite=False):
     db_path = Path(db_path).resolve()
     output_dir = Path(output_dir).resolve()
     timestamp = datetime.now(timezone.utc)
     folder = output_dir / f"{timestamp:%Y%m%dT%H%M%S.%fZ}-{secrets.token_hex(3)}"
-    folder.mkdir(parents=True, exist_ok=False)
+    output_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    folder.mkdir(mode=0o700, exist_ok=False)
     sqlite_path = folder / "neocare.sqlite3"
     firebase_path = folder / "firebase.json"
+    # SQLite normally creates files using the process umask. Reserve the empty
+    # destination with owner-only permissions before SQLite writes the snapshot.
+    os.close(os.open(sqlite_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600))
     _copy_sqlite(db_path, sqlite_path, allow_missing=allow_missing_sqlite)
     firebase_data = firebase_ref.get()
     if firebase_data is not None and not isinstance(firebase_data, dict):
         raise ValueError("The Firebase application subtree must be an object or empty")
-    firebase_path.write_text(json.dumps(firebase_data, ensure_ascii=False, allow_nan=False), encoding="utf-8")
+    _write_private_json(firebase_path, firebase_data, ensure_ascii=False, allow_nan=False)
     manifest = {
         "format_version": BACKUP_FORMAT,
         "created_at": timestamp.isoformat(),
@@ -79,7 +91,7 @@ def create_backup(db_path, firebase_ref, output_dir, *, firebase_url="", kind="m
             "firebase": {"name": firebase_path.name, "sha256": _sha256(firebase_path)},
         },
     }
-    (folder / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    _write_private_json(folder / "manifest.json", manifest, indent=2)
     verify_backup(folder)
     return folder
 

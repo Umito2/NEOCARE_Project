@@ -1,8 +1,10 @@
 package com.neocare.app;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
@@ -17,6 +19,7 @@ import android.net.Uri;
 import android.security.NetworkSecurityPolicy;
 import android.view.View;
 import android.webkit.CookieManager;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -131,6 +134,48 @@ public final class MainActivityTest {
         }
     }
 
+    @Test public void pendingPdfSurvivesRendererAndActivityRecreationThenCancellationRemovesIt() throws Exception {
+        syntheticPage(HostPolicy.HOME);
+        // Block the picker without returning a result, leaving the export in
+        // flight while we reproduce activity destruction/recreation.
+        Instrumentation.ActivityMonitor monitor = pdfPickerMonitor(null);
+        AtomicReference<String> token = new AtomicReference<>();
+        byte[] expected = "%PDF-1.7\n% synthetic\n".getBytes(StandardCharsets.US_ASCII);
+        try {
+            String message = "{\"op\":\"savePdf\",\"data\":\"JVBERi0xLjcKJSBzeW50aGV0aWMK\","
+                    + "\"mimeType\":\"application/pdf\",\"filename\":\"Synthetic.pdf\"}";
+            scenario.onActivity(activity -> {
+                activity.handleWebMessage(message, Uri.parse(HostPolicy.ORIGIN), true);
+                token.set(activity.pendingPdfToken);
+                assertNotNull(token.get());
+                assertTrue(activity.pendingPdfStore.contains(token.get()));
+                // The callback does not inspect RenderProcessGoneDetail. A
+                // synthetic callback exercises replacement without crashing Chrome.
+                WebView previous = activity.webView;
+                assertTrue(previous.getWebViewClient().onRenderProcessGone(previous, null));
+                assertNotSame(previous, activity.webView);
+                assertEquals(token.get(), activity.pendingPdfToken);
+                assertTrue(activity.pendingPdfStore.contains(token.get()));
+            });
+            awaitPicker(monitor);
+            scenario.recreate();
+            scenario.onActivity(activity -> {
+                activity.webView.stopLoading();
+                assertEquals(token.get(), activity.pendingPdfToken);
+                try {
+                    assertArrayEquals(expected, activity.pendingPdfStore.read(token.get()));
+                } catch (java.io.IOException failure) {
+                    throw new AssertionError("The recreated activity lost its pending report", failure);
+                }
+                activity.onActivityResult(7001, Activity.RESULT_CANCELED, null);
+                assertEquals(null, activity.pendingPdfToken);
+                assertFalse(activity.pendingPdfStore.contains(token.get()));
+            });
+        } finally {
+            instrumentation.removeMonitor(monitor);
+        }
+    }
+
     @Test public void bridgeObjectIsAbsentOnAnUntrustedOrigin() throws Exception {
         // Isolate the bridge's own origin rule from the production navigation guard.
         // The only page loaded here is the local synthetic fixture below.
@@ -207,11 +252,14 @@ public final class MainActivityTest {
     }
 
     private Instrumentation.ActivityMonitor pdfPickerMonitor() throws Exception {
+        return pdfPickerMonitor(new Instrumentation.ActivityResult(Activity.RESULT_CANCELED, null));
+    }
+
+    private Instrumentation.ActivityMonitor pdfPickerMonitor(Instrumentation.ActivityResult result) throws Exception {
         IntentFilter filter = new IntentFilter(Intent.ACTION_CREATE_DOCUMENT);
         filter.addCategory(Intent.CATEGORY_OPENABLE);
         filter.addDataType("application/pdf");
-        Instrumentation.ActivityMonitor monitor = new Instrumentation.ActivityMonitor(filter,
-                new Instrumentation.ActivityResult(Activity.RESULT_CANCELED, null), true);
+        Instrumentation.ActivityMonitor monitor = new Instrumentation.ActivityMonitor(filter, result, true);
         instrumentation.addMonitor(monitor);
         return monitor;
     }
@@ -281,6 +329,10 @@ public final class MainActivityTest {
                     @Override public void onPageFinished(WebView view, String url) {
                         productionClient.onPageFinished(view, url);
                         finished.set(url);
+                    }
+
+                    @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                        return productionClient.onRenderProcessGone(view, detail);
                     }
                 });
                 activity.webView.loadUrl(fixtureUrl);

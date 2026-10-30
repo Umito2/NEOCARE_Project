@@ -55,13 +55,15 @@ import java.util.concurrent.Executors;
 public class MainActivity extends Activity {
     private static final int CREATE_PDF = 7001;
     private static final String BRIDGE = "NEOCAREAndroid";
+    private static final String PENDING_EXPORT = "pending_pdf_export";
     private final ExecutorService fileWriter = Executors.newSingleThreadExecutor();
     WebView webView;
     FrameLayout errorPanel;
     ProgressBar progressBar;
     private FrameLayout webContainer;
     private TextView errorMessage;
-    private PdfPayload pendingPdf;
+    PendingPdfStore pendingPdfStore;
+    String pendingPdfToken;
     private boolean pageFailed;
     private boolean bridgeSupported;
     private boolean unsupportedNoticeShown;
@@ -71,6 +73,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        pendingPdfStore = new PendingPdfStore(getCacheDir());
+        if (state != null) pendingPdfToken = state.getString(PENDING_EXPORT);
+        pendingPdfStore.removeExpired(pendingPdfToken);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         reportScript = readReportScript();
         buildLayout();
@@ -278,7 +283,6 @@ public class MainActivity extends Activity {
         }
 
         @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
-            clearPendingPdf();
             webContainer.removeView(view);
             view.destroy();
             createWebView();
@@ -295,13 +299,20 @@ public class MainActivity extends Activity {
             JSONObject message = new JSONObject(json);
             switch (message.getString("op")) {
                 case "savePdf":
-                    if (pendingPdf != null) {
+                    if (pendingPdfToken != null) {
                         toast(R.string.download_busy);
                         return;
                     }
                     PdfPayload pdf = PdfPayload.decode(message.getString("data"),
                             message.getString("mimeType"), message.optString("filename", "NEOCARE_Report.pdf"));
-                    pendingPdf = pdf;
+                    try {
+                        pendingPdfToken = pendingPdfStore.save(pdf);
+                    } catch (IOException unavailableStorage) {
+                        toast(R.string.download_failed);
+                        return;
+                    } finally {
+                        Arrays.fill(pdf.bytes, (byte) 0);
+                    }
                     Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                     intent.addCategory(Intent.CATEGORY_OPENABLE);
                     intent.setType("application/pdf");
@@ -339,26 +350,31 @@ public class MainActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent result) {
         super.onActivityResult(requestCode, resultCode, result);
         if (requestCode != CREATE_PDF) return;
-        PdfPayload pdf = pendingPdf;
-        pendingPdf = null;
+        String token = pendingPdfToken;
+        pendingPdfToken = null;
         Uri destination = result == null ? null : result.getData();
-        if (pdf == null) return;
+        if (token == null) return;
         if (resultCode != RESULT_OK || destination == null || !"content".equals(destination.getScheme())) {
-            Arrays.fill(pdf.bytes, (byte) 0);
+            pendingPdfStore.discard(token);
             return;
         }
         fileWriter.execute(() -> {
             boolean saved = false;
-            try (OutputStream output = getContentResolver().openOutputStream(destination, "w")) {
-                if (output != null) {
-                    output.write(pdf.bytes);
-                    output.flush();
-                    saved = true;
+            byte[] bytes = null;
+            try {
+                bytes = pendingPdfStore.read(token);
+                try (OutputStream output = getContentResolver().openOutputStream(destination, "w")) {
+                    if (output != null) {
+                        output.write(bytes);
+                        output.flush();
+                        saved = true;
+                    }
                 }
             } catch (IOException | SecurityException ignored) {
                 // Report only a generic failure; report contents and destination stay private.
             } finally {
-                Arrays.fill(pdf.bytes, (byte) 0);
+                if (bytes != null) Arrays.fill(bytes, (byte) 0);
+                pendingPdfStore.discard(token);
             }
             final boolean success = saved;
             runOnUiThread(() -> {
@@ -368,10 +384,15 @@ public class MainActivity extends Activity {
     }
 
     private void clearPendingPdf() {
-        if (pendingPdf != null) {
-            Arrays.fill(pendingPdf.bytes, (byte) 0);
-            pendingPdf = null;
+        if (pendingPdfToken != null) {
+            pendingPdfStore.discard(pendingPdfToken);
+            pendingPdfToken = null;
         }
+    }
+
+    @Override protected void onSaveInstanceState(Bundle state) {
+        if (pendingPdfToken != null) state.putString(PENDING_EXPORT, pendingPdfToken);
+        super.onSaveInstanceState(state);
     }
 
     private void openExternal(String url) {
@@ -420,7 +441,9 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33 && backCallback != null) {
             getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);
         }
-        clearPendingPdf();
+        // A recreated activity receives the opaque token through saved state.
+        // Report bytes stay in private cache until the picker returns or cancels.
+        if (isFinishing()) clearPendingPdf();
         fileWriter.shutdown();
         if (webView != null) {
             webContainer.removeView(webView);

@@ -784,6 +784,9 @@
     let reportReadingAvailable = false;
     let reportRequestGeneration = 0;
     let authSessionGeneration = 0;
+    let profilesRequestGeneration = 0;
+    let readingRequestGeneration = 0;
+    let alertsRequestGeneration = 0;
     let renderedProfilesSnapshot = "";
     let dashboardRefreshInProgress = false;
     let historyRequestGeneration = 0;
@@ -1041,6 +1044,7 @@
         document.getElementById("doctor-account-password").value = "";
         form.reset();
         await loadDoctorAccounts();
+        if (currentUser !== user || authSessionGeneration !== session) return;
         showDashboardMessage("Doctor account created.", "success");
         await loadAuditEvents();
       } catch (error) {
@@ -1095,6 +1099,10 @@
     }
 
     function clearSessionData() {
+      profilesRequestGeneration += 1;
+      readingRequestGeneration += 1;
+      alertsRequestGeneration += 1;
+      dashboardRefreshInProgress = false;
       parentChildId = null;
       renderedProfilesSnapshot = "";
       pendingAlertDeletions.clear();
@@ -1110,6 +1118,14 @@
       form.reset();
       setBusy(form, false);
       setBusy(saveButton, false);
+      setBusy(document.getElementById("refresh-button"), false);
+      setBusy(document.getElementById("refresh-sensors"), false);
+      setBusy(profileList, false);
+      document.getElementById("threshold-form").reset();
+      setBusy(document.getElementById("threshold-form"), false);
+      setBusy(document.querySelector('#threshold-form button[type="submit"]'), false);
+      document.getElementById("threshold-message").textContent = "";
+      document.getElementById("threshold-message").className = "message";
       document.getElementById("parent-profile-card").hidden = true;
       document.getElementById("dashboard-message").textContent = "";
       document.getElementById("dashboard-message").className = "message";
@@ -1331,11 +1347,18 @@
       if (typeof path !== "string" || (path !== "/health" && !path.startsWith("/api/v1/")) || /[\\#]/.test(path)) {
         throw new Error("The request could not be completed.");
       }
-      return fetch(hostedApiOrigin ? `${hostedApiOrigin}${path}` : path, {
+      const requestUser = currentUser;
+      const requestSession = authSessionGeneration;
+      const response = await fetch(hostedApiOrigin ? `${hostedApiOrigin}${path}` : path, {
         ...options,
         credentials: hostedApiOrigin ? "include" : "same-origin",
         redirect: "error"
       });
+      if (response.status === 401 && requestUser && currentUser === requestUser && authSessionGeneration === requestSession) {
+        showSignIn();
+        showAuthMessage("Your session has ended. Please sign in again.");
+      }
+      return response;
     }
 
     async function apiRequest(path, options = {}) {
@@ -1455,6 +1478,7 @@
           edit.dataset.childId = profile.child_id;
           edit.setAttribute("aria-label", `Edit ${profile.name || profile.child_id}'s profile`);
           edit.addEventListener("click", () => {
+            if (currentUser !== profilesUser || authSessionGeneration !== profilesSession) return;
             parentChildId = profile.child_id;
             document.getElementById("parent-profile-card").hidden = false;
             document.getElementById("child-id").value = profile.child_id;
@@ -1509,6 +1533,7 @@
         edit.dataset.childId = profile.child_id;
         edit.setAttribute("aria-label", `Edit ${profile.name || profile.child_id}'s profile`);
         edit.addEventListener("click", () => {
+          if (currentUser !== profilesUser || authSessionGeneration !== profilesSession) return;
           if (currentUser.role === "parent") parentChildId = profile.child_id;
           document.getElementById("child-id").value = profile.child_id;
           document.getElementById("name").value = profile.name || "";
@@ -1542,15 +1567,23 @@
     async function loadProfiles({ refreshReading = true, background = false } = {}) {
       const profilesUser = currentUser;
       const profilesSession = authSessionGeneration;
-      const profiles = await apiRequest("/api/v1/children");
-      if (!profilesUser || currentUser !== profilesUser || profilesSession !== authSessionGeneration) return;
-      if (!background || JSON.stringify(profiles) !== renderedProfilesSnapshot) renderProfiles(profiles);
-      if (currentUser.role === "parent" && profiles.length) {
-        document.getElementById("child-id-field").hidden = true;
-      } else if (currentUser.role === "doctor") {
-        document.getElementById("child-id-field").hidden = false;
+      const generation = ++profilesRequestGeneration;
+      const profilesAreCurrent = () => profilesUser && currentUser === profilesUser
+        && profilesSession === authSessionGeneration && generation === profilesRequestGeneration;
+      if (!profilesUser) return;
+      try {
+        const profiles = await apiRequest("/api/v1/children");
+        if (!profilesAreCurrent()) return;
+        if (!background || JSON.stringify(profiles) !== renderedProfilesSnapshot) renderProfiles(profiles);
+        if (currentUser.role === "parent" && profiles.length) {
+          document.getElementById("child-id-field").hidden = true;
+        } else if (currentUser.role === "doctor") {
+          document.getElementById("child-id-field").hidden = false;
+        }
+        if (refreshReading) await Promise.all([refreshSensorReading(), refreshHistory()]);
+      } catch (error) {
+        if (profilesAreCurrent()) throw error;
       }
-      if (refreshReading) await Promise.all([refreshSensorReading(), refreshHistory()]);
     }
 
     function setSensorValues(reading) {
@@ -1578,8 +1611,10 @@
       const childId = sensorChild.value;
       const readingUser = currentUser;
       const readingSession = authSessionGeneration;
+      const generation = ++readingRequestGeneration;
       const readingIsCurrent = () => currentUser === readingUser
-        && readingSession === authSessionGeneration && sensorChild.value === childId;
+        && readingSession === authSessionGeneration && sensorChild.value === childId
+        && generation === readingRequestGeneration;
       if (!readingUser) return;
       if (!childId) {
         updateDeviceStatus(null);
@@ -1686,25 +1721,31 @@
 
     document.getElementById("refresh-button").addEventListener("click", async (event) => {
       const button = event.currentTarget;
+      const user = currentUser;
+      const session = authSessionGeneration;
       setBusy(button, true);
       setBusy(profileList, true);
       try {
         await loadProfiles();
       } catch (error) {
-        showDashboardMessage(error.message);
+        if (currentUser === user && authSessionGeneration === session) showDashboardMessage(error.message);
       } finally {
-        setBusy(button, false);
-        setBusy(profileList, false);
+        if (currentUser === user && authSessionGeneration === session) {
+          setBusy(button, false);
+          setBusy(profileList, false);
+        }
       }
     });
 
     document.getElementById("refresh-sensors").addEventListener("click", async (event) => {
       const button = event.currentTarget;
+      const user = currentUser;
+      const session = authSessionGeneration;
       setBusy(button, true);
       try {
         await refreshSensorReading();
       } finally {
-        setBusy(button, false);
+        if (currentUser === user && authSessionGeneration === session) setBusy(button, false);
       }
     });
     sensorChild.addEventListener("change", () => {
@@ -1906,6 +1947,9 @@
       currentUser = null;
       renderedProfilesSnapshot = "";
       clearSessionData();
+      document.getElementById("account-name").textContent = "";
+      document.getElementById("account-name").hidden = true;
+      document.getElementById("logout-button").hidden = true;
       resetPasswordFields();
       document.getElementById("doctor-account-form")?.reset();
       document.getElementById("doctor-account-list")?.replaceChildren();
@@ -1924,7 +1968,11 @@
     }
 
     async function loadDoctorThresholds() {
+      const user = currentUser;
+      const session = authSessionGeneration;
+      if (user?.role !== "doctor") return;
       const result = await apiRequest("/api/v1/doctor/alert-thresholds");
+      if (currentUser !== user || authSessionGeneration !== session) return;
       if (!result.thresholds) return;
       const inputMap = {
         "th-spo2": "spo2_min",
@@ -2011,8 +2059,11 @@
     async function loadAlerts() {
       const alertsUser = currentUser;
       const alertsSession = authSessionGeneration;
+      const generation = ++alertsRequestGeneration;
+      const alertsSessionIsCurrent = () => alertsUser && currentUser === alertsUser && authSessionGeneration === alertsSession;
+      if (!alertsUser) return;
       const alerts = await apiRequest("/api/v1/alerts");
-      if (currentUser !== alertsUser || authSessionGeneration !== alertsSession) return;
+      if (!alertsSessionIsCurrent() || generation !== alertsRequestGeneration) return;
       const list = document.getElementById("alert-list");
       const drafts = new Map(Array.from(list.querySelectorAll(".alert-workflow-form")).map((form) => [form.dataset.alertId, {
         status: form.querySelector("select").value, note: form.querySelector("textarea").value,
@@ -2067,16 +2118,19 @@
           downloadButton.textContent = "Download report PDF";
           downloadButton.setAttribute("aria-label", `Download alert report for ${alert.child_name || alert.child_id}`);
           downloadButton.addEventListener("click", async () => {
+            if (!alertsSessionIsCurrent() || downloadButton.disabled) return;
             setBusy(downloadButton, true);
             try {
               const response = await apiFetch(
                 `/api/v1/alerts/${encodeURIComponent(alert.alert_id)}/pdf`
               );
+              if (!alertsSessionIsCurrent()) return;
               if (!response.ok) {
                 const data = await response.json().catch(() => ({}));
                 throw new Error(typeof data.detail === "string" ? data.detail : "The alert PDF could not be downloaded.");
               }
               const blob = await response.blob();
+              if (!alertsSessionIsCurrent()) return;
               const url = URL.createObjectURL(blob);
               const link = document.createElement("a");
               link.href = url;
@@ -2084,9 +2138,9 @@
               link.click();
               window.setTimeout(() => URL.revokeObjectURL(url), 1000);
             } catch (error) {
-              showDashboardMessage(error.message);
+              if (alertsSessionIsCurrent()) showDashboardMessage(error.message);
             } finally {
-              setBusy(downloadButton, false);
+              if (alertsSessionIsCurrent()) setBusy(downloadButton, false);
             }
           });
           actions.append(downloadButton);
@@ -2101,21 +2155,25 @@
           deleteButton.setAttribute("aria-label", `Delete alert for ${alert.child_name || alert.child_id}`);
           setBusy(deleteButton, pendingAlertDeletions.has(alertId));
           deleteButton.addEventListener("click", async () => {
-            if (pendingAlertDeletions.has(alertId)) return;
+            if (!alertsSessionIsCurrent() || alertsUser.role !== "doctor" || pendingAlertDeletions.has(alertId)) return;
             if (!confirmAction(`Delete this alert for ${alert.child_name || alert.child_id}? This removes it from the clinic and parent alert histories and deletes any saved PDF. This cannot be undone.`)) return;
             pendingAlertDeletions.add(alertId);
             setBusy(deleteButton, true);
             try {
               await apiRequest(`/api/v1/alerts/${encodeURIComponent(alertId)}`, { method: "DELETE" });
+              if (!alertsSessionIsCurrent()) return;
               await loadAlerts();
+              if (!alertsSessionIsCurrent()) return;
               showDashboardMessage("Alert deleted from the clinic and parent histories, including any saved PDF.", "success");
             } catch (error) {
-              showDashboardMessage(error.message);
+              if (alertsSessionIsCurrent()) showDashboardMessage(error.message);
             } finally {
-              pendingAlertDeletions.delete(alertId);
-              document.querySelectorAll(".delete-alert-button").forEach((button) => {
-                if (button.dataset.alertId === alertId) setBusy(button, false);
-              });
+              if (alertsSessionIsCurrent()) {
+                pendingAlertDeletions.delete(alertId);
+                document.querySelectorAll(".delete-alert-button").forEach((button) => {
+                  if (button.dataset.alertId === alertId) setBusy(button, false);
+                });
+              }
             }
           });
           actions.append(deleteButton);
@@ -2134,6 +2192,8 @@
     async function enterDashboard(user) {
       authSessionGeneration += 1;
       currentUser = user;
+      const session = authSessionGeneration;
+      const sessionIsCurrent = () => currentUser === user && authSessionGeneration === session;
       renderedProfilesSnapshot = "";
       clearSessionData();
       updateWorkspaceNavigation();
@@ -2175,12 +2235,14 @@
       sensorCard.hidden = demoMode;
       try {
         await loadProfiles();
+        if (!sessionIsCurrent()) return;
         if (doctor) {
           await Promise.all([loadDoctorThresholds(), loadDoctorAccounts(), loadAuditEvents()]);
         }
+        if (!sessionIsCurrent()) return;
         if (!demoMode) await loadAlerts();
       } catch (error) {
-        showDashboardMessage(error.message);
+        if (sessionIsCurrent()) showDashboardMessage(error.message);
       }
     }
 
@@ -2276,6 +2338,10 @@
 
     document.getElementById("threshold-form").addEventListener("submit", async (event) => {
       event.preventDefault();
+      const user = currentUser;
+      const session = authSessionGeneration;
+      const sessionIsCurrent = () => currentUser === user && authSessionGeneration === session;
+      if (user?.role !== "doctor") return;
       const submitButton = event.currentTarget.querySelector('button[type="submit"]');
       const fields = {
         "th-spo2": "spo2_min",
@@ -2297,18 +2363,24 @@
           method: "PUT",
           body: JSON.stringify(thresholds)
         });
+        if (!sessionIsCurrent()) return;
         await loadProfiles();
+        if (!sessionIsCurrent()) return;
         await loadAlerts();
+        if (!sessionIsCurrent()) return;
         const status = document.getElementById("threshold-message");
         status.textContent = "Clinic thresholds saved.";
         status.className = "message show success";
       } catch (error) {
+        if (!sessionIsCurrent()) return;
         const status = document.getElementById("threshold-message");
         status.textContent = error.message;
         status.className = "message show error";
       } finally {
-        setBusy(submitButton, false);
-        setBusy(document.getElementById("threshold-form"), false);
+        if (sessionIsCurrent()) {
+          setBusy(submitButton, false);
+          setBusy(document.getElementById("threshold-form"), false);
+        }
       }
     });
 
@@ -2357,7 +2429,7 @@
       } catch (error) {
         if (currentUser === refreshUser && authSessionGeneration === refreshSession) showDashboardMessage(error.message);
       } finally {
-        dashboardRefreshInProgress = false;
+        if (currentUser === refreshUser && authSessionGeneration === refreshSession) dashboardRefreshInProgress = false;
       }
     }, 5000);
   </script>

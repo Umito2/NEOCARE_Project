@@ -14,6 +14,13 @@ The native PDF bridge accepts only the configured HTTPS origin and main frame,
 limits reports to 8 MiB, and never chooses a storage path itself. The app requests
 only Internet permission. It does not bundle credentials or patient data.
 
+A report awaiting the system save dialog is held temporarily in the app's private
+cache, so Android can recreate the screen without losing the export. Only an
+opaque file identifier is kept in saved instance state. The temporary report is
+deleted after saving, cancellation, or normal activity completion. Abandoned
+exports older than 24 hours are removed on the next app launch; the currently
+restored export is preserved until its save dialog returns.
+
 ## Build
 
 The repository's **Actions > Build Android APK > Run workflow** builds the app,

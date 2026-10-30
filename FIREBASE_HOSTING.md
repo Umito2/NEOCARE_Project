@@ -48,6 +48,13 @@ account keys remain private on PythonAnywhere. Database access continues through
 the authenticated API; the public interface receives no Firebase Admin key and
 does not require opening Realtime Database rules to public reads or writes.
 
+`database.rules.json` denies direct client reads and writes. The Python backend
+uses the private Admin service account, which continues to work with these rules.
+The reviewed rules were applied on 30 October 2026 after finding time-limited
+public test rules. Keep them synchronized with `firebase deploy --only database`;
+deploying only Hosting does not update database rules. Do not enable public
+database access to connect GitHub or the website.
+
 The backend keeps rule-based recommendations, as configured by
 `pythonanywhere_wsgi.py`. No local AI model is uploaded or required. Follow
 [the PythonAnywhere deployment guide](PYTHONANYWHERE_DEPLOY.md) to update the
