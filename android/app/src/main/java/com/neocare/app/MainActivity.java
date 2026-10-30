@@ -183,7 +183,7 @@ public class MainActivity extends Activity {
 
         bridgeSupported = WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)
                 && reportScript != null;
-        if (bridgeSupported) {
+        if (bridgeSupported && WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             WebViewCompat.addWebMessageListener(webView, BRIDGE, Collections.singleton(HostPolicy.ORIGIN),
                     (view, message, sourceOrigin, isMainFrame, replyProxy) -> {
                         if (message.getType() == androidx.webkit.WebMessageCompat.TYPE_STRING) {
@@ -392,7 +392,10 @@ public class MainActivity extends Activity {
         else finish();
     }
 
+    // Android 13+ gestures use the registered OnBackInvokedCallback above.
+    // This override serves only the legacy Back dispatch on Android 8–12.
     @Override @SuppressWarnings("deprecation")
+    @SuppressLint("GestureBackNavigation")
     public void onBackPressed() {
         navigateBack();
     }
