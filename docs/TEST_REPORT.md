@@ -35,6 +35,13 @@ desktop previews were captured, with distinct clothing shades and natural skin
 tones. Evidence: `test-results/frontend/illustration-colors.tap` and
 `test-results/frontend/screenshots/illustration-*.png`.
 
+Logo follow-up: the NEOCARE icon, wordmark and tagline retain their original
+light/dark colors independently of the custom accent. All 21 existing custom-color
+checks passed again. Browser inspection across five custom colors in both modes
+confirmed unchanged logo colors while the illustration and buttons still adapt.
+Evidence: `test-results/frontend/fixed-logo-colors.tap` and
+`test-results/frontend/screenshots/fixed-logo-*.png`.
+
 ## Full project review and fixes — 30 October 2026
 
 This review supersedes the older results below. Source, regression tests and
