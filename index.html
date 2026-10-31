@@ -125,6 +125,11 @@
         palette.hero = readableColor(blend(customAccent, "#102125", 0.68), ["#ffffff"], 7, "#000000");
         palette.heroMuted = readableColor(blend("#ffffff", palette.hero, 0.22), [palette.hero], 4.8, "#ffffff");
         palette.heroAccent = readableColor(blend(customAccent, "#ffffff", 0.60), [palette.hero], 4.8, "#ffffff");
+        palette.artBase = blend(customAccent, "#687078", 0.55);
+        palette.artClothingLight = blend(customAccent, "#ffffff", 0.78);
+        palette.artClothingMid = blend(customAccent, "#9da5ad", 0.45);
+        palette.artBadge = blend(customAccent, "#ffffff", 0.88);
+        palette.artHeart = readableColor(customAccent, [palette.artBadge], 3, "#000000");
         Object.entries(palette).forEach(([name, value]) => {
           const property = `--custom-${name.replace(/[A-Z]/g, letter => "-" + letter.toLowerCase())}`;
           root.style.setProperty(property, value);
@@ -808,6 +813,14 @@
       [data-accent] .auth-story { background: var(--custom-hero); color: #fff; }
       [data-accent] .story-kicker, [data-accent] .story-copy, [data-accent] .story-footer small { color: var(--custom-hero-muted); }
       [data-accent] .story-title em, [data-accent] .story-footer > span { color: var(--custom-hero-accent); }
+      [data-accent] .care-illustration .art-halo { stroke: var(--custom-hero-accent); }
+      [data-accent] .care-illustration .art-halo circle { fill: var(--custom-hero-accent); }
+      [data-accent] .care-illustration .art-base { fill: var(--custom-art-base); }
+      [data-accent] .care-illustration .art-clothing-light { fill: var(--custom-art-clothing-light); }
+      [data-accent] .care-illustration .art-clothing-mid { fill: var(--custom-art-clothing-mid); }
+      [data-accent] .care-illustration .art-heart rect { fill: var(--custom-art-badge); }
+      [data-accent] .care-illustration .art-heart path { fill: var(--custom-art-heart); }
+      [data-accent] .care-illustration .art-decoration { stroke: var(--custom-hero-accent); }
       [data-accent] .auth-content { background: var(--surface); }
       [data-accent] .role-switch { background: var(--custom-soft); border-color: var(--line); }
       [data-accent] .role-button { color: var(--muted); }
@@ -869,18 +882,18 @@
         <div class="care-illustration" aria-hidden="true">
           <svg viewBox="0 0 370 238" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g class="art-halo" stroke="#b8d29a" stroke-opacity=".2"><ellipse cx="185" cy="120" rx="145" ry="98"/><ellipse cx="185" cy="120" rx="115" ry="76"/><circle cx="65" cy="64" r="5" fill="#cfe3ac" stroke="none"/><circle cx="309" cy="169" r="4" fill="#cfe3ac" stroke="none"/></g>
-            <path d="M97 197c13-37 41-64 83-64 50 0 78 26 95 64" fill="#5b7f60"/>
-            <path d="M128 190c-7-22-8-56 7-72 13-14 33-18 51-15 23 4 39 28 39 51v36" fill="#d8e5b9"/>
+            <path class="art-base" d="M97 197c13-37 41-64 83-64 50 0 78 26 95 64" fill="#5b7f60"/>
+            <path class="art-clothing-light" d="M128 190c-7-22-8-56 7-72 13-14 33-18 51-15 23 4 39 28 39 51v36" fill="#d8e5b9"/>
             <ellipse cx="168" cy="82" rx="28" ry="33" fill="#efc5a4"/>
             <path d="M139 82c-7-32 9-47 31-46 22 0 35 16 27 46l-8-11-8-17-17 15-17 3-8 10Z" fill="#183d34"/>
             <path d="M150 95c10 8 20 8 29 0" stroke="#b68468" stroke-width="2" stroke-linecap="round"/>
             <ellipse cx="220" cy="131" rx="23" ry="26" fill="#f1ccac"/>
             <path d="M197 128c-3-22 6-31 22-32 14-1 26 12 24 29l-11-8-10-10-10 14-15 7Z" fill="#325749"/>
-            <path d="M204 161c12-12 31-10 42 2l17 34h-69l10-36Z" fill="#a6bf87"/>
+            <path class="art-clothing-mid" d="M204 161c12-12 31-10 42 2l17 34h-69l10-36Z" fill="#a6bf87"/>
             <path d="m145 137 20 29c6 9 19 14 34 13l35-3" stroke="#efc5a4" stroke-width="16" stroke-linecap="round"/>
-            <path d="m255 193 18 9M100 201h188" stroke="#bfd39e" stroke-opacity=".5" stroke-width="2" stroke-linecap="round"/>
+            <path class="art-decoration" d="m255 193 18 9M100 201h188" stroke="#bfd39e" stroke-opacity=".5" stroke-width="2" stroke-linecap="round"/>
             <g class="art-heart"><rect x="264" y="54" width="44" height="44" rx="15" fill="#e3edca" transform="rotate(10 286 76)"/><path d="m285 84-9-8a5 5 0 0 1 7-7l2 2 2-2a5 5 0 0 1 7 7l-9 8Z" fill="#688c57"/></g>
-            <path d="M74 139v12m-6-6h12M290 119v8m-4-4h8" stroke="#bdd4a2" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+            <path class="art-decoration" d="M74 139v12m-6-6h12M290 119v8m-4-4h8" stroke="#bdd4a2" stroke-width="2" stroke-linecap="round" opacity=".7"/>
           </svg>
         </div>
         <div class="story-footer"><span><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-users"/></svg></span><div><strong>For families. For care teams.</strong><small>One shared picture of everyday care.</small></div></div>

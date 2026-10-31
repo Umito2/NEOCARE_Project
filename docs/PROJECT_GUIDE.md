@@ -103,7 +103,9 @@ value, or select a preset. The color adjusts the interface accents and backgroun
 tints while keeping text readable. Reset restores the original palette without
 changing light/dark mode. Preferences are saved in the current browser or app;
 they are not synchronized through the account across devices or website addresses.
-Clinical status colors retain their meaning, and printed reports stay light.
+The family illustration's clothing, heart badge and decorative details also
+follow the chosen palette. Clinical status colors retain their meaning, and
+printed reports stay light.
 
 Subtle entrance, loading, and reading-change animations respect the device's reduced-motion preference. Keyboard users can use skip links and visible focus indicators. Password visibility resets after sign-in and sign-out. The English/العربية switch translates the interface and changes its reading direction; patient names, clinician notes, and other entered text remain unchanged.
 

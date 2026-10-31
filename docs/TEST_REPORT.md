@@ -28,6 +28,13 @@ Evidence: `test-results/frontend/custom-colors-full.tap`,
 `deployment-artifacts/firebase-browser-live.json`, and
 `test-results/live-review-verification.json`.
 
+Illustration follow-up: the family artwork now derives clothing, silhouette,
+heart badge, halo and decorative colors from the selected palette. The existing
+21 custom-color checks passed again. Purple, pink, white, black and yellow
+desktop previews were captured, with distinct clothing shades and natural skin
+tones. Evidence: `test-results/frontend/illustration-colors.tap` and
+`test-results/frontend/screenshots/illustration-*.png`.
+
 ## Full project review and fixes — 30 October 2026
 
 This review supersedes the older results below. Source, regression tests and
