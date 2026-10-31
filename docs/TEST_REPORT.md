@@ -1,5 +1,22 @@
 # NEOCARE test report
 
+## Collapsible sidebar — 31 October 2026
+
+The desktop sidebar now collapses into a 76px icon rail using the panel button
+beside "Your workspace". The dashboard expands into the available space. The
+preference persists in browser storage and synchronizes across tabs. Icon names
+remain available to screen readers and as translated hover titles. Mobile
+navigation retains its existing labeled horizontal layout.
+
+Validation: **151/151 existing browser tests passed**. Seven targeted browser
+scenarios also passed, covering English/Arabic desktop layouts, Enter/Space
+activation, icon navigation, light/dark custom colors, saved and invalid values,
+blocked storage, cross-tab changes, sign-out, printing and resizing across the
+950/951px breakpoint. Desktop previews were inspected with synthetic data.
+
+Evidence: `test-results/frontend/collapsible-sidebar-full.tap` and
+`test-results/frontend/screenshots/sidebar-*.png`.
+
 ## Custom theme colors — 31 October 2026
 
 Users can choose any RGB color through the palette button, HEX entry or five

@@ -9,6 +9,7 @@
     "Your session has ended. Please sign in again.": "انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.",
     "The website connection is not configured correctly.": "إعدادات اتصال الموقع غير صحيحة.",
     "Switch to dark mode": "التبديل إلى الوضع الداكن", "Switch to light mode": "التبديل إلى الوضع الفاتح",
+    "Collapse sidebar": "طي الشريط الجانبي", "Expand sidebar": "توسيع الشريط الجانبي",
     "Points show recorded measurements. Missing intervals are left blank.": "تمثل النقاط القياسات المسجلة، وتُترك الفترات المفقودة فارغة.",
     "Doctor signed in": "تسجيل دخول طبيب", "Doctor account created": "إنشاء حساب طبيب", "Alert status changed": "تغيير حالة تنبيه", "Clinical note added": "إضافة ملاحظة سريرية", "Alert updated": "تحديث تنبيه", "Alert deleted": "حذف تنبيه", "Child profile created": "إنشاء ملف طفل", "Child profile updated": "تحديث ملف طفل", "Child profile deleted": "حذف ملف طفل", "Clinic thresholds updated": "تحديث حدود العيادة", "Report shared": "مشاركة تقرير",
     "Connected care": "رعاية متصلة", "Skip to dashboard": "الانتقال إلى لوحة المتابعة", "Skip to sign in": "الانتقال إلى تسجيل الدخول",

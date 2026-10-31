@@ -96,6 +96,12 @@ The SQLite database is created on startup. If Firebase credentials or required s
 
 The interface uses a responsive teal-and-ivory design across sign-in, registration, parent and clinic dashboards, profiles, readings, alerts, settings, and reports. Dashboard navigation moves to the selected section; on phones it becomes a horizontal navigation bar. Summary cards reflect the children and readings returned by the server.
 
+On desktop, use the panel button beside "Your workspace" to collapse the sidebar
+to icons or expand the labels again. Hover over an icon to see its section name.
+The choice is saved in this browser and shared with other open tabs. Narrow
+screens keep the horizontal navigation with labels; returning to desktop restores
+the saved sidebar size. The control supports English, Arabic and the keyboard.
+
 Use the moon/sun button beside the language switch to change between light and dark mode. The initial theme follows the device's color preference; an explicit choice is saved in this browser and shared with other open NEOCARE tabs. Theme controls and labels work in English and Arabic. Printed reports use a light background in either mode.
 
 Open the palette button to choose any interface color with the picker or a HEX
