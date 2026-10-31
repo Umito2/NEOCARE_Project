@@ -1,6 +1,11 @@
 /* UI translation only. Patient names, entered notes, and original clinical text are preserved. */
 (() => {
   const arabic = {
+    "Customize colors": "تخصيص الألوان", "Make it yours": "اختر ألوانك", "Close color settings": "إغلاق إعدادات الألوان",
+    "Choose a color for your care space.": "اختر لونًا لمساحة الرعاية الخاصة بك.", "Color presets": "ألوان جاهزة",
+    "Teal": "أخضر مزرق", "Blue": "أزرق", "Purple": "بنفسجي", "Rose": "وردي", "Amber": "كهرماني", "Color": "اللون", "HEX color": "رمز اللون HEX", "Reset colors": "استعادة الألوان الأصلية",
+    "Use the picker or type a HEX color. Your choice works in light and dark mode.": "استخدم أداة اختيار اللون أو اكتب رمز HEX. يعمل اختيارك في الوضعين الفاتح والداكن.",
+    "Enter a HEX color such as #246d5c or #36c.": "أدخل رمز لون HEX مثل #246d5c أو #36c.",
     "Your session has ended. Please sign in again.": "انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.",
     "The website connection is not configured correctly.": "إعدادات اتصال الموقع غير صحيحة.",
     "Switch to dark mode": "التبديل إلى الوضع الداكن", "Switch to light mode": "التبديل إلى الوضع الفاتح",

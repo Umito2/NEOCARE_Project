@@ -407,7 +407,7 @@ export async function startBrowser() {
         : hostingConfigScript;
       const configuredHtml = html.replace('<script src="/assets/hosting-config.js"></script>', () => `<script>${configScript}</script>`);
       const pageHtml = options.observeThemeInitialization
-        ? configuredHtml.replace(/(<body\b[^>]*>)/i, '$1<script>window.__fixture.themeAtBodyStart=document.documentElement.getAttribute("data-theme");</script>')
+        ? configuredHtml.replace(/(<body\b[^>]*>)/i, '$1<script>window.__fixture.themeAtBodyStart=document.documentElement.getAttribute("data-theme");window.__fixture.accentAtBodyStart=document.documentElement.getAttribute("data-accent");</script>')
         : configuredHtml;
       await pageCDP.send('Page.setDocumentContent', { frameId: frameTree.frame.id, html: pageHtml });
       await page.settle();

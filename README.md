@@ -2,7 +2,7 @@
 
 A Python web application and Android app for viewing children's sensor readings,
 managing clinic alerts, and generating PDF reports. The interface supports
-English, Arabic, light mode, and dark mode.
+English, Arabic, light/dark mode, and a custom theme color picker.
 
 - [Open the website](https://neocare-system.web.app)
 - [Download the Android APK](https://github.com/Umito2/NEOCARE_Project/releases/latest)

@@ -1,5 +1,33 @@
 # NEOCARE test report
 
+## Custom theme colors — 31 October 2026
+
+Users can choose any RGB color through the palette button, HEX entry or five
+presets, and restore the default palette. Color and light/dark preferences are
+independent and saved per browser/app origin. The interface derives readable
+shades; status badges keep their semantic colors and printing stays light.
+
+Validation: **151/151 browser tests passed**, including 21 new custom-color
+checks. Coverage includes first-render restoration, short/full HEX input,
+invalid values, typing without caret disruption, presets/reset, blocked storage,
+cross-tab updates, sign-in/out persistence, keyboard focus, Arabic and English at
+320/360/390px, and printing. Black, white and six other extreme/saturated colors
+meet the tested 4.5:1 text contrast threshold in both modes. Desktop/mobile
+previews were inspected with synthetic data.
+
+The update is deployed to Firebase Hosting and PythonAnywhere, which also serves
+the existing Android app. All **21 live Chrome checks** and **20 live HTTP/file
+checks** passed. Live checks cover color application, persistence after reload,
+mode switching and reset on both origins, then authentication and access
+restrictions. One existing live-PDF check remains skipped because there was no
+reportable reading. No native Android changes were needed; the physical Android
+color dialog was not tested, and HEX entry is available as an alternative.
+
+Evidence: `test-results/frontend/custom-colors-full.tap`,
+`test-results/frontend/screenshots/custom-*.png`,
+`deployment-artifacts/firebase-browser-live.json`, and
+`test-results/live-review-verification.json`.
+
 ## Full project review and fixes — 30 October 2026
 
 This review supersedes the older results below. Source, regression tests and
